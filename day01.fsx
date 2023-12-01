@@ -63,7 +63,7 @@ let findIndex (sArr : string array) (s : string) indexFinder sorter =
 let stringsToCharsFilter (s: string) =
     let sArr = 
         [|'0'..'9'|] 
-        |> Array.map (fun c -> string c) 
+        |> Array.map string
         |> Array.append [|"one"; "two"; "three"; "four"; "five"; "six"; "seven"; "eight"; "nine"|]
     let firstIndex = findIndex sArr s (fun s sInt -> s.IndexOf(sInt)) Array.sortBy
     let lastIndex = findIndex sArr s (fun s sInt -> s.LastIndexOf(sInt)) Array.sortByDescending
