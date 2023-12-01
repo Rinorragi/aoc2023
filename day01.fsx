@@ -21,20 +21,17 @@ let calibrationValues (rawInput: char array array) =
         |> System.String 
         |> int)
 
-let answer (values: int array) =
-    values |> Array.sum
-
 // Example 1
 parseInput "./input/day01_example.txt" (fun (s : string) -> s)
 |> calibrationValues
-|> answer
+|> Array.sum
 |> printfn "Example answer: %d"
 |> ignore
 
 // Answer 1
 parseInput "./input/day01.txt" (fun (s : string) -> s)
 |> calibrationValues
-|> answer
+|> Array.sum
 |> printfn "Answer 1: %d"
 |> ignore
 
@@ -50,49 +47,38 @@ let stringReplaceToInt (s: string) =
         .Replace("eight","8")
         .Replace("nine","9")
 
+let findIndex (sArr : string array) (s : string) indexFinder sorter = 
+    sArr 
+    |> Array.map (fun sInt-> 
+        let index = indexFinder s sInt
+        match index with
+        | -1 -> None
+        |  _ -> Some(index, sInt))
+    |> Array.choose id
+    |> sorter fst
+    |> Array.head 
+    |> snd 
+    |> stringReplaceToInt
+
 let stringsToCharsFilter (s: string) =
     let sArr = 
         [|'0'..'9'|] 
         |> Array.map (fun c -> string c) 
         |> Array.append [|"one"; "two"; "three"; "four"; "five"; "six"; "seven"; "eight"; "nine"|]
-    let firstIndex = 
-        sArr 
-        |> Array.map (fun sInt-> 
-            let index = s.IndexOf(sInt)
-            match index with
-            | -1 -> None
-            |  _ -> Some(index, sInt))
-        |> Array.choose id
-        |> Array.sortBy fst
-        |> Array.head 
-        |> snd 
-        |> stringReplaceToInt
-
-    let lastIndex = 
-        sArr 
-        |> Array.map (fun sInt-> 
-            let index = s.LastIndexOf(sInt)
-            match index with
-            | -1 -> None
-            |  _ -> Some(index, sInt))
-        |> Array.choose id
-        |> Array.sortByDescending fst
-        |> Array.head
-        |> snd 
-        |> stringReplaceToInt
+    let firstIndex = findIndex sArr s (fun s sInt -> s.IndexOf(sInt)) Array.sortBy
+    let lastIndex = findIndex sArr s (fun s sInt -> s.LastIndexOf(sInt)) Array.sortByDescending
     firstIndex + lastIndex
-
 
 // Example 2
 parseInput "./input/day01_example2.txt" stringsToCharsFilter
 |> calibrationValues
-|> answer
+|> Array.sum
 |> printfn "Example 2 answer: %d"
 |> ignore
 
 // Answer 2
 parseInput "./input/day01.txt" stringsToCharsFilter
 |> calibrationValues
-|> answer
+|> Array.sum
 |> printfn "Answer 2: %d"
 |> ignore
