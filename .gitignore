@@ -475,3 +475,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# AoC specific files
+input/
