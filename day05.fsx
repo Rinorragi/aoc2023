@@ -24,26 +24,25 @@ let parseInput (filePath) =
 let stringToInt64Array (s: string) =
     s.Split(' ', System.StringSplitOptions.RemoveEmptyEntries) |> Array.map int64
 
+let getMaps (sArr: string array) = 
+    sArr
+    |> Array.skip 1
+    |> Array.map (fun s -> 
+        s.Split(nl, System.StringSplitOptions.RemoveEmptyEntries)
+        |> Array.skip 1 // Name of the map
+        |> Array.map stringToInt64Array
+        |> Array.map (fun arr -> {
+            destination = arr.[0]
+            source = arr.[1]
+            range = arr.[2]}))
+
 let inputToSeedLocations getSeeds (sArr: string array) = 
     let seeds : Seed array = getSeeds sArr.[0]
-    let maps = 
-        sArr
-        |> Array.skip 1
-        |> Array.map (fun s -> 
-            s.Split(nl, System.StringSplitOptions.RemoveEmptyEntries)
-            |> Array.skip 1 // Name of the map
-            |> Array.map stringToInt64Array
-            |> Array.map (fun arr -> {
-                destination = arr.[0]
-                source = arr.[1]
-                range = arr.[2]}))
-    let iSeeds = 
-        seeds 
-        |> Array.map (fun seed -> 
-            [|seed.id .. seed.id + seed.range - 1L|])
-        |> Array.concat
-    printfn "%A" iSeeds
-    iSeeds
+    let maps = getMaps sArr
+    seeds 
+    |> Array.map (fun seed -> 
+        [|seed.id .. seed.id + seed.range - 1L|])
+    |> Array.concat
     |> Array.map (fun iSeed -> 
         [|0..maps.Length - 1|]
         |> Array.fold (fun state i -> 
@@ -90,8 +89,8 @@ parseInput "./input/day05_example.txt"
 |> Array.min
 |> printfn "Example answer 2: %d"
 
-
-parseInput "./input/day05.txt" 
-|> inputToSeedLocations getSeedRange
-|> Array.min
-|> printfn "Answer 2: %d"
+//FIX: Arithmetic operation overflow in arrays
+//parseInput "./input/day05.txt" 
+//|> inputToSeedLocations getSeedRange
+//|> Array.min
+//|> printfn "Answer 2: %d"
