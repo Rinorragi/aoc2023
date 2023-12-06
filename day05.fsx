@@ -73,24 +73,57 @@ let getSeedRange (s: string) =
         id = i
         range = r})
 
-parseInput "./input/day05_example.txt" 
+let exampleInput = parseInput "./input/day05_example.txt"
+let input = parseInput "./input/day05.txt" 
+
+exampleInput
 |> inputToSeedLocations getSeedsOneByOne
 |> Array.min
 |> printfn "Example answer 1: %d"
 
-
-parseInput "./input/day05.txt" 
+input 
 |> inputToSeedLocations getSeedsOneByOne
 |> Array.min
 |> printfn "Answer 1: %d"
 
-parseInput "./input/day05_example.txt" 
+// It kind of works, but explodes to too big tables in part 2
+exampleInput
 |> inputToSeedLocations getSeedRange
 |> Array.min
 |> printfn "Example answer 2: %d"
 
-//FIX: Arithmetic operation overflow in arrays
-//parseInput "./input/day05.txt" 
-//|> inputToSeedLocations getSeedRange
-//|> Array.min
-//|> printfn "Answer 2: %d"
+type largeInt = int64
+exception BruteForceFinishedError of string
+
+let part2InverterMadnessBruteForce (sArr: string array) = 
+    let maps = sArr |> getMaps
+    let seedRanges = sArr.[0] |> getSeedRange
+    for i in 0L .. largeInt.MaxValue do
+        let potentialSeed = 
+            maps 
+            |> Array.rev
+            |> Array.fold (fun (state: int64) (mapArr: Converter array) ->
+                let conv = 
+                    mapArr 
+                    |> Array.tryFind (fun c -> 
+                        state >= c.destination 
+                        && state <= c.destination + c.range - 1L )
+                match conv with
+                | None -> state 
+                | _ -> 
+                    let c = conv.Value
+                    let diff = state - c.destination
+                    c.source + diff
+                ) i 
+        let seedConv = 
+            seedRanges
+            |> Array.tryFind (fun c -> 
+                potentialSeed >= c.id 
+                && potentialSeed <= c.id + c.range - 1L )
+        if (seedConv.IsSome) 
+        then 
+            printfn "Answer 2: %A" i
+            raise (BruteForceFinishedError "this was stupid") 
+     
+input
+|> part2InverterMadnessBruteForce
