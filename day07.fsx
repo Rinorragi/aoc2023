@@ -12,14 +12,14 @@ type HandType =
 
 type CamelHand = {
     bid: int64
-    cards: int list
+    cards: char list
     handType: HandType
 }
 
 // Newline
 let nl = "\n"
 
-let solveHandType (hand : int list) = 
+let solveHandType (hand : char list) = 
     let groupped = hand |> List.groupBy id |> List.sortByDescending (fun fs -> fs |> snd |> List.length) |> List.map snd
     if groupped.[0].Length = 5 then HandType.FiveKind
     elif groupped.[0].Length = 4 then HandType.FourKind
@@ -29,18 +29,18 @@ let solveHandType (hand : int list) =
     elif groupped.[0].Length = 2 then HandType.Pair
     else HandType.HighCard
 
-let sortHands (hands : CamelHand list) =
+let sortHands charValueSolver (hands : CamelHand list) =
     hands 
     |> List.groupBy (fun h -> h.handType) 
     |> List.sortByDescending (fst) 
     |> List.map (fun (_, someHands) -> 
-        // Sort in reverse order to keep order of the earlier ones
+        // Sort in reverse order to keep order of less significant card order
         someHands
-        |> List.sortByDescending (fun hand -> hand.cards[4])
-        |> List.sortByDescending (fun hand -> hand.cards[3])
-        |> List.sortByDescending (fun hand -> hand.cards[2])
-        |> List.sortByDescending (fun hand -> hand.cards[1])
-        |> List.sortByDescending (fun hand -> hand.cards[0]))
+        |> List.sortByDescending (fun hand -> charValueSolver hand.cards[4])
+        |> List.sortByDescending (fun hand -> charValueSolver hand.cards[3])
+        |> List.sortByDescending (fun hand -> charValueSolver hand.cards[2])
+        |> List.sortByDescending (fun hand -> charValueSolver hand.cards[1])
+        |> List.sortByDescending (fun hand -> charValueSolver hand.cards[0]))
     |> List.concat
 
 let parseInput (filePath) =
@@ -48,18 +48,22 @@ let parseInput (filePath) =
     // Replace CRLF to only LF (copy+paste and input in different format)
     |> fun s -> s.Replace("\r\n", nl)
     |> fun s -> s.Split(nl, System.StringSplitOptions.RemoveEmptyEntries)
+
+let charToInt (jokers: bool) (c: char) =
+    match c with 
+    | 'A' -> 14
+    | 'K' -> 13
+    | 'Q' -> 12
+    | 'J' -> if jokers then 1 else 11
+    | 'T' -> 10
+    | _  -> int c - int '0'
+
+let stringsToCamelHands (jokers: bool) (sHands : string array) =
+    sHands
     |> Array.map (fun s -> 
         let values = s.Split(' ', System.StringSplitOptions.RemoveEmptyEntries)
         let hand = 
             values.[0].ToCharArray() 
-            |> Array.map (fun c -> 
-                match c with 
-                | 'A' -> 14
-                | 'K' -> 13
-                | 'Q' -> 12
-                | 'J' -> 11
-                | 'T' -> 10
-                | _  -> int c - int '0')
             |> List.ofArray
         {
             bid = values.[1] |> int64
@@ -67,10 +71,9 @@ let parseInput (filePath) =
             handType = solveHandType hand    
         })
     |> List.ofArray
-    |> sortHands
+    |> sortHands (charToInt jokers)
 
 let calculateTotalWinnings (hands: CamelHand list) = 
-    let len = hands.Length
     hands
     |> List.rev
     |> List.mapi (fun i hand -> (int64(i) + 1L) * hand.bid)
@@ -79,5 +82,5 @@ let calculateTotalWinnings (hands: CamelHand list) =
 let exampleGame = parseInput "./input/day07_example.txt"
 let game = parseInput "./input/day07.txt"
 
-exampleGame |> calculateTotalWinnings |> printfn "Example answer 1: %A"
-game |> calculateTotalWinnings |> printfn "Answer 1: %A"
+exampleGame |> stringsToCamelHands false |> calculateTotalWinnings |> printfn "Example answer 1: %A"
+game |> stringsToCamelHands false |> calculateTotalWinnings |> printfn "Answer 1: %A"
