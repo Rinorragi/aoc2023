@@ -19,14 +19,24 @@ type CamelHand = {
 // Newline
 let nl = "\n"
 
-let solveHandType (hand : char list) = 
-    let groupped = hand |> List.groupBy id |> List.sortByDescending (fun fs -> fs |> snd |> List.length) |> List.map snd
-    if groupped.[0].Length = 5 then HandType.FiveKind
-    elif groupped.[0].Length = 4 then HandType.FourKind
-    elif groupped.[0].Length = 3 && groupped.[1].Length = 2 then HandType.FullHouse
-    elif groupped.[0].Length = 3 then HandType.ThreeKind
-    elif groupped.[0].Length = 2 && groupped.[1].Length = 2 then HandType.TwoPairs
-    elif groupped.[0].Length = 2 then HandType.Pair
+let countJokers (jokers: bool) (hand: char list) = 
+    if jokers then hand |> List.filter (fun c -> c = 'J') |> List.length
+    else 0
+
+let groubCardsInHand (jokers: bool) (hand: char list) = 
+    let groupped = hand |> List.groupBy id |> List.sortByDescending (fun fs -> fs |> snd |> List.length)
+    if jokers then groupped |> List.filter (fun (c, cList) -> c <> 'J') |> List.map snd 
+    else groupped |> List.map snd
+
+let solveHandType (jokers: bool) (hand : char list) = 
+    let iJokers = countJokers jokers hand 
+    let groupped = groubCardsInHand jokers hand
+    if iJokers = 5 || groupped.[0].Length + iJokers = 5 then HandType.FiveKind
+    elif groupped.[0].Length + iJokers = 4 then HandType.FourKind
+    elif groupped.[0].Length + iJokers = 3 && groupped.[1].Length = 2 then HandType.FullHouse
+    elif groupped.[0].Length + iJokers = 3 then HandType.ThreeKind
+    elif groupped.[0].Length = 2 && groupped.[1].Length + iJokers = 2 then HandType.TwoPairs
+    elif groupped.[0].Length + iJokers = 2 then HandType.Pair
     else HandType.HighCard
 
 let sortHands charValueSolver (hands : CamelHand list) =
@@ -68,7 +78,7 @@ let stringsToCamelHands (jokers: bool) (sHands : string array) =
         {
             bid = values.[1] |> int64
             cards = hand
-            handType = solveHandType hand    
+            handType = solveHandType jokers hand    
         })
     |> List.ofArray
     |> sortHands (charToInt jokers)
@@ -84,3 +94,7 @@ let game = parseInput "./input/day07.txt"
 
 exampleGame |> stringsToCamelHands false |> calculateTotalWinnings |> printfn "Example answer 1: %A"
 game |> stringsToCamelHands false |> calculateTotalWinnings |> printfn "Answer 1: %A"
+
+
+exampleGame |> stringsToCamelHands true |> calculateTotalWinnings |> printfn "Example answer 2: %A"
+game |> stringsToCamelHands true |> calculateTotalWinnings |> printfn "Answer 2: %A"
