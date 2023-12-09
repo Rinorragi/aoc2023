@@ -12,7 +12,7 @@ let parseInput (filePath) =
     |> Array.map (fun s -> s.Split(" ", System.StringSplitOptions.RemoveEmptyEntries)|> Array.map int |> List.ofArray)
     |> List.ofArray 
 
-let rec getPredictionValue (historyRow: int list) =
+let rec getPredictionValue  (historyRow: int list) =
     let pairDiffs = 
         historyRow |> List.pairwise |> List.map (fun (first, second) -> second - first)
     let predictionDiff = 
@@ -25,4 +25,3 @@ let instabilitySensorHistoryExamples = parseInput "./input/day09_example.txt"
 let instabilitySensorHistories = parseInput "./input/day09.txt"
 instabilitySensorHistoryExamples |> List.map getPredictionValue |> List.sum |> printfn "Example answer 1: %A"
 instabilitySensorHistories |> List.map getPredictionValue |> List.sum |> printfn "Answer 1: %A"
-//printfn "%A" instabilitySensorHistoryExamples
