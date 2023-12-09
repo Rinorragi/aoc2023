@@ -124,6 +124,8 @@ let part2InverterMadnessBruteForce (sArr: string array) =
         then 
             printfn "Answer 2: %A" i
             raise (BruteForceFinishedError "this was stupid") 
-     
-input
-|> part2InverterMadnessBruteForce
+try      
+    input
+    |> part2InverterMadnessBruteForce
+with
+| _ -> "" |> ignore
