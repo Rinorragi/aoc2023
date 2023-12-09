@@ -12,6 +12,13 @@ dotnet new gitignore
 
 ## How to run
 
+You need to add inputs to input folder with dayXX.txt or dayXX_example.txt (also sometimes dayXX_exampleN.txt)
+
 ```powershell
 dotnet fsi dayX.fsx
+```
+
+or to run all simply 
+```powershell
+ls -filter *.fsx | % { dotnet fsi $_ }
 ```
