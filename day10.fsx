@@ -73,42 +73,50 @@ let solvePart1 (pipe: (Direction * int) list) =
     pipe.Length / 2 + pipe.Length % 2
 
 let rec getPartsToDirection (input: string) (rowLength: int) (pipe: (Direction * int) list) (dir: Direction) (index: int) (indexes: int list) =
-    let newIndex = directionToIndex dir rowLength index
+    // Sanity check for coin flip of rotation direction
     if (index < 0 || index >= input.Length) then failwith "Wrong direction"
+    let newIndex = directionToIndex dir rowLength index
     if (pipe |> List.exists (fun f -> snd f = newIndex)) 
     then indexes
     else 
         getPartsToDirection input rowLength pipe dir newIndex (List.append indexes [newIndex]) 
 
-let clockWise direction =
-    match direction with
-    | North -> East
-    | East -> South
-    | South -> West
-    | West -> North
-    | None -> failwith "pipePart was none"
-
-let counterClockWise direction = 
-    match direction with
-    | North -> West
-    | West -> South
-    | South -> East
-    | East -> North
-    | None -> failwith "pipePart was none"
+let clockWise (input: string) (direction: Direction, index: int) =
+    match input.ToCharArray().[index] with 
+    | '|' -> if direction = North then East else West
+    | 'L' -> if direction = North then None else West
+    | 'J' -> if direction = West then None else East
+    | '7' -> if direction = South then None else East
+    | 'F' -> if direction = East then None else West
+    | '-'
+    | _ -> None
+ 
+let counterClockWise (input: string) (direction: Direction, index: int) = 
+    match input.ToCharArray().[index] with 
+    | '|' -> if direction = North then West else East
+    | 'J' -> if direction = North then None else East
+    | '7' -> if direction = West then None else East
+    | 'F' -> if direction = South then None else West
+    | 'L' -> if direction = East then None else West
+    | '-'
+    | _ -> None
 
 let solveNestArea directionFunction (input: string) (rowLength: int) (pipe: (Direction * int) list) =
     pipe 
-    |> List.fold (fun (state: int list) pipePart -> 
-        let dir90 = directionFunction (fst pipePart)
-        let newState = getPartsToDirection input rowLength pipe dir90 (snd pipePart) state
-        newState) ([])
+    |> List.fold (fun (state: Direction * int list) pipePart -> 
+        let dir90 = directionFunction input pipePart
+        let newState = getPartsToDirection input rowLength pipe dir90 (snd pipePart) (snd state)
+        (None,newState)) (None,[])
+    |> snd
     |> List.distinct
 
 let findNestArea (input: string) (rowLength: int) (pipe: (Direction * int) list) =
     try 
         solveNestArea counterClockWise input rowLength pipe
     with 
-        | _ -> solveNestArea clockWise input rowLength pipe
+        | _ ->
+            printfn "Whoopsie. Changing direction."
+            solveNestArea clockWise input rowLength pipe
 
 let exampleInput1 = parseInput "./input/day10_example.txt" 
 let exampleRowLength1 = exampleInput1.IndexOf(nl) + 1
@@ -124,13 +132,17 @@ pipe |> solvePart1 |> printfn "Answer 1: %A"
 let exampleInput2 = parseInput "./input/day10_example2.txt" 
 let exampleRowLength2 = exampleInput2.IndexOf(nl) + 1
 let examplePipe2 = traverseSetup exampleInput2 exampleRowLength2
-findNestArea exampleInput2 exampleRowLength2 examplePipe2 |> List.length |> printfn "Example Answer 2: %A"
-
+findNestArea exampleInput2 exampleRowLength2 examplePipe2 |> List.length |> printfn "Example Answer 2: %A (should be 4)"
 
 // This does not 
 let exampleInput3 = parseInput "./input/day10_example3.txt" 
 let exampleRowLength3 = exampleInput3.IndexOf(nl) + 1
 let examplePipe3 = traverseSetup exampleInput3 exampleRowLength3
-findNestArea exampleInput3 exampleRowLength3 examplePipe3 |> List.length |> printfn "Example answer 2.1: %A"
+findNestArea exampleInput3 exampleRowLength3 examplePipe3 |> List.length |> printfn "Example answer 2.1: %A (should be 8)"
 
-// findNestArea input rowLength pipe |> List.length |> printfn "Answer 2: %d"
+let exampleInput4 = parseInput "./input/day10_example4.txt" 
+let exampleRowLength4 = exampleInput4.IndexOf(nl) + 1
+let examplePipe4 = traverseSetup exampleInput4 exampleRowLength4
+findNestArea exampleInput4 exampleRowLength4 examplePipe4 |> List.length |> printfn "Example answer 2.2: %A (should be 10)"
+
+findNestArea input rowLength pipe |> List.length |> printfn "Answer 2: %d"
