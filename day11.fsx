@@ -32,37 +32,27 @@ let getRowsToAppend (universe: char list list) =
         | true -> Some(i)
         | _ -> None)
     |> List.choose id
+    |> List.map int64
+    |> Set.ofList
 
 let getColsAndRowsToAppend (universe: char list list) =
-    (getRowsToAppend universe, transpose universe |> getRowsToAppend)      
+    (getRowsToAppend universe, transpose universe |> getRowsToAppend)
 
-let appendEmptySpaceToRows (universe: char list list) (rows: int list) =
-    universe
-    |> List.fold (fun (index, newUniverse) row ->
-        match rows |> List.contains index with 
-        | true ->  (index + 1, (List.append newUniverse [row; row]))
-        | false -> (index + 1, (List.append newUniverse [row]))
-    ) (0, [])
-    |> snd
-
-let appendUniverse (universe: char list list) (rows: int list, cols: int list) =
-    let newUniverse = appendEmptySpaceToRows universe rows
-    let finalUniverse = appendEmptySpaceToRows (transpose newUniverse) cols
-    transpose finalUniverse
-
-let printUniverse (universe: char list list) = 
-    universe |> List.map (fun cList -> cList |> List.toArray |> System.String |> printfn "%s")
-
-let parseUniverse (filePath: string) = 
-    let universe = parseInput filePath
-    appendUniverse universe (getColsAndRowsToAppend universe) 
-
-let toCoord rowLength num = num / rowLength, num % rowLength
+let toCoord (rowLength: int64) (num: int64) = num / rowLength, num % rowLength
 let manhattanDistance (x1, y1) (x2, y2) = abs(x1 - x2) + abs (y1 - y2)
+let adjustUniverseAge (rows: int64 Set) (cols: int64 Set) (expansion: int64) (x1, y1) (x2, y2) =
+    let rowSpace = (if x1 < x2 then [x1..x2] else [x2..x1]) |> Set.ofList
+    let colSpace = (if y1 < y2 then [y1..y2] else [y2..y1]) |> Set.ofList
+    let rowsToAdd = Set.intersect rowSpace rows |> Set.count |> int64
+    let colsToAdd = Set.intersect colSpace cols |> Set.count |> int64
+    let yPair = if y1 < y2 then y1, y2 + (colsToAdd * expansion) else y1 + (colsToAdd * expansion),y2
+    let xPair = if x1 < x2 then x1,x2 + (rowsToAdd * expansion) else x1 + (rowsToAdd * expansion),x2
+    (fst xPair, fst yPair), (snd xPair, snd yPair)
 
-let galaxyPaths (universe: char list list) =
+let galaxyPaths (expansion: int64) (universe: char list list) =
+    let (rows, cols) = getColsAndRowsToAppend universe
     let stringVerse = universe |> List.map (fun cList -> cList |> List.toArray |> System.String)
-    let rowLength = stringVerse.[0].Length
+    let rowLength = stringVerse.[0].Length |> int64
     let theOneString = stringVerse |> List.fold (fun state newRow -> state + newRow) ""
     let galaxyIndexes = 
         theOneString.ToCharArray() 
@@ -72,6 +62,7 @@ let galaxyPaths (universe: char list list) =
             | '#' -> Some(i)
             | _ -> None)
         |> List.choose id
+        |> List.map int64
     let galaxyPairs = 
         List.allPairs galaxyIndexes galaxyIndexes 
         |> List.distinct
@@ -81,10 +72,15 @@ let galaxyPaths (universe: char list list) =
         |> List.map (fun (i1, i2) -> 
             let xy1 = toCoord rowLength (i1)
             let xy2 = toCoord rowLength (i2)
-            manhattanDistance xy1 xy2)
+            let (agedXY1, agedXY2) = adjustUniverseAge rows cols expansion xy1 xy2
+            manhattanDistance agedXY1 agedXY2)
     distances
 
-let exampleUniverse = parseUniverse "./input/day11_example.txt" 
-exampleUniverse |> galaxyPaths |> List.sum |> printfn "Example answer 1: %d"
-let universe = parseUniverse "./input/day11.txt" 
-universe |> galaxyPaths |> List.sum |> printfn "Answer 1: %d"
+let exampleUniverse = parseInput "./input/day11_example.txt" 
+exampleUniverse |> galaxyPaths 1 |> List.sum |> printfn "Example answer 1: %d"
+let universe = parseInput "./input/day11.txt" 
+universe |> galaxyPaths 1 |> List.sum |> printfn "Answer 1: %d"
+
+exampleUniverse |> galaxyPaths 9 |> List.sum |> printfn "Example answer 2 (10): %d"
+exampleUniverse |> galaxyPaths 99 |> List.sum |> printfn "Example answer 2 (100): %d"
+universe |> galaxyPaths 999999 |> List.sum |> printfn "Answer 2: %d"
