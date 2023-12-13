@@ -6,7 +6,6 @@ let nl = "\n"
 let parseInput (filePath) =
     System.IO.File.ReadAllText filePath
     // Replace CRLF to only LF (copy+paste and input in different format)
-    |> fun s -> s.Replace('.', '_')
     |> fun s -> s.Replace("\r\n", nl)
     |> fun s -> 
         s.Split(nl+nl, System.StringSplitOptions.RemoveEmptyEntries)
