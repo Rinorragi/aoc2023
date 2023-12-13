@@ -24,30 +24,33 @@ let rec transpose matrix =
     | _ -> []
   | _ -> [] 
 
-let checkReflection (mirror: string list) (i:int) = 
+let checkReflection (tolerance: int) (mirror: string list)  (i:int) = 
     let indexesToCheck = [0..i] |> List.rev
-    let isReflection = 
+    let diffAmount = 
         indexesToCheck
         |> List.map (fun k -> 
             let step = i + 1 + (i-k)
-            if step >= mirror.Length then true 
+            if step >= mirror.Length then 0 
             else 
-                let reflectionRow = mirror.[k]
-                let row = mirror.[step]
-                row = reflectionRow)
-        |> List.forall (fun f -> f)
-    if isReflection then Some(i) else None
+                let reflectionRow = mirror.[k].ToCharArray()
+                let row = mirror.[step].ToCharArray()
+                row 
+                |> Array.mapi (fun i c -> row.[i] <> reflectionRow.[i])
+                |> Array.filter id
+                |> Array.length)
+        |> List.sum
+    if diffAmount = tolerance then Some(i) else None
 
-let findReflection (mirror: string list) =
+let findReflection (tolerance: int) (mirror: string list)=
     let height = mirror.Length
     let reflectionRows = 
         [0..height - 2] 
-        |> List.map (checkReflection mirror)
+        |> List.map (checkReflection tolerance mirror)
         |> List.choose id
     if reflectionRows.Length = 0 then -1 else reflectionRows.[0]
 
-let reflectionCalculation (mirror: string list) =
-    let rowReflection = findReflection mirror
+let reflectionCalculation (tolerance: int) (mirror: string list) =
+    let rowReflection = findReflection tolerance mirror
     if rowReflection >= 0
     then 
         (rowReflection + 1) * 100
@@ -58,7 +61,7 @@ let reflectionCalculation (mirror: string list) =
             |> transpose
             |> List.map (fun cList -> 
                 cList |> Array.ofList |> System.String)        
-        let colReflection = findReflection transposedMirror
+        let colReflection = findReflection tolerance transposedMirror
         if colReflection = - 1 
         then 
             mirror |> List.map (fun s -> printfn "%s" s) |> ignore
@@ -69,9 +72,8 @@ let exampleMirrors = parseInput "./input/day13_example.txt"
 
 let mirrors = parseInput "./input/day13.txt" 
 
-exampleMirrors |> List.map reflectionCalculation |> List.sum |> printfn "Example answer 1: %d"
-mirrors 
-|> List.mapi (fun i sList -> 
-    let midSum = reflectionCalculation sList
-    midSum)
-|> List.sum |> printfn "Answer 1: %d"
+exampleMirrors |> List.map (reflectionCalculation 0) |> List.sum |> printfn "Example answer 1: %d"
+mirrors |> List.map (reflectionCalculation 0) |> List.sum |> printfn "Answer 1: %d"
+
+exampleMirrors |> List.map (reflectionCalculation 1) |> List.sum |> printfn "Example answer 2: %d"
+mirrors |> List.map (reflectionCalculation 1) |> List.sum |> printfn "Answer 2: %d"
