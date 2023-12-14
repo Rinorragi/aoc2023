@@ -123,26 +123,12 @@ let calculateTotalLoad (rocks: Rock list) =
     |> List.map(fun r -> maxY - r.y)
     |> List.sum
 
-let rollCycleTimes (nMax: int) (nTotal: int) (rocks: Rock list) = 
+let rollCycleTimes (nTotal: int) (rocks: Rock list) = 
     let maxY = rocksMaxY rocks
     let maxX = rocksMaxX rocks
-    let nSkip = nMax / 10 // Enough rounds to make situation settle down
-    let rec rollCycle (nCounter: int) (maxY: int) (maxX: int) (recRocks: Rock list) (loads: int list) =  
-        if (nCounter % 100 = 0) then printfn "Rolling cycle: %d/%d" nCounter nMax
-        let newRocks = 
-            recRocks 
-            |> roll RollDirection.North maxY maxX 
-            |> roll RollDirection.West maxY maxX 
-            |> roll RollDirection.South maxY maxX 
-            |> roll RollDirection.East maxY maxX 
-        let newTotalLoad = recRocks |> calculateTotalLoad
-        if nCounter + 1 = nMax || newRocks = recRocks 
-        then loads
-        else 
-            rollCycle (nCounter + 1) maxY maxX newRocks (loads @ [newTotalLoad])
-    
-    let rec findLoadWindow (nCounter: int) (loads: int list) = 
-        if nCounter > (nMax - nSkip)  then failwith "More range needed"
+
+    let rec findLoadWindow (nCounter: int) (localMax: int) (loads: int list) = 
+        if nCounter > localMax then -1
         else 
             let evenNumber = loads.Length / nCounter
             let windowedloads = 
@@ -151,14 +137,29 @@ let rollCycleTimes (nMax: int) (nTotal: int) (rocks: Rock list) =
                 |> List.chunkBySize nCounter
             if windowedloads |> List.forall (fun win -> win = windowedloads.Head) 
             then nCounter
-            else findLoadWindow (nCounter + 1) loads
-    let loads = rollCycle 0 maxY maxX rocks []
-    let skipWindow = loads |> List.skip nSkip
-    let windowSize = findLoadWindow 2 skipWindow
-    let modus = (nTotal - nSkip) % windowSize
-    let result = skipWindow.[modus]
-    printfn "Window size: %d with result %d" windowSize result
-    result
+            else findLoadWindow (nCounter + 1) localMax loads
+
+    let rec rollCycle (nCounter: int) (maxY: int) (maxX: int) (recRocks: Rock list) (loads: int list) =  
+        let windowMax = loads.Length / 10
+        let nSkip = loads.Length / 2 // Enough rounds to make situation settle down
+        let skipWindow = loads |> List.skip nSkip
+        let windowSize = findLoadWindow 2 windowMax skipWindow
+        if (nCounter % 100 = 0) then printfn "Rolling cycle: %d/%d skip %d windowMax %d" nCounter nTotal nSkip windowMax
+        if (windowSize <> -1) 
+        then 
+            let modus = (nTotal - nSkip) % windowSize
+            let result = skipWindow.[modus]
+            result
+        else 
+            let newRocks = 
+                recRocks 
+                |> roll RollDirection.North maxY maxX 
+                |> roll RollDirection.West maxY maxX 
+                |> roll RollDirection.South maxY maxX 
+                |> roll RollDirection.East maxY maxX 
+            let newTotalLoad = recRocks |> calculateTotalLoad
+            rollCycle (nCounter + 1) maxY maxX newRocks (loads @ [newTotalLoad])
+    rollCycle 0 maxY maxX rocks []
 
 let rollNorthOnce (rocks: Rock list) = 
     let maxY = rocksMaxY rocks
@@ -173,5 +174,5 @@ exampleRocks |> rollNorthOnce |> calculateTotalLoad |> printfn "Example answer 1
 rocks |> rollNorthOnce |> calculateTotalLoad |> printfn "Answer 1: %d"
 
 // Part 2
-exampleRocks |> rollCycleTimes 5000 1000000000 |> printfn "Example answer 2: %d"
-rocks |> rollCycleTimes 5000 1000000000 |> printfn "Answer 2: %d"
+exampleRocks |> rollCycleTimes 1000000000 |> printfn "Example answer 2: %d"
+rocks |> rollCycleTimes 1000000000 |> printfn "Answer 2: %d"
