@@ -5,7 +5,7 @@ open System
 
 let nl = "\n"
 type RockType = 
-    | Solid
+    | Unmovable
     | Rolling
 type RollDirection =
     | North
@@ -33,7 +33,7 @@ let parseInput (filePath) =
             |> List.ofArray 
             |> List.mapi (fun x c ->
                 match c with 
-                | '#' -> Some(new Rock(Guid.NewGuid(), RockType.Solid, x, y))
+                | '#' -> Some(new Rock(Guid.NewGuid(), RockType.Unmovable, x, y))
                 | 'O' -> Some(new Rock(Guid.NewGuid(),RockType.Rolling, x, y))
                 | _ -> None)
              |> List.choose id)
@@ -49,14 +49,15 @@ let updateRockState (movedRocks: Rock list) (rocks: Rock list) =
         |> List.filter (fun r -> not (movedRockIds |> List.contains r.id))
     unmovedRocks @ movedRocks
 
-let rollSouthNorth (yList: int list) blockFilterFunc newYFunc freeY (rocks: Rock list) = 
+let rollSouthNorth (yList: int list) blockFilterFunc newYFunc freeY (unmovaBle: Rock list) (rocks: Rock list) = 
     yList
     |> List.fold (fun (state: Rock list) (y: int) -> 
         let movedRocks = 
-            state |> List.filter(fun r -> r.y = y && r.rockType = RockType.Rolling)
+            state 
+            |> List.filter(fun r -> r.y = y)
             |> List.map (fun r -> 
                 let newY = 
-                    state 
+                    (state @ unmovaBle) 
                     |> List.filter(fun r -> blockFilterFunc r y)
                     |> List.filter(fun rx -> rx.x = r.x) 
                     |> fun rxs -> 
@@ -67,14 +68,15 @@ let rollSouthNorth (yList: int list) blockFilterFunc newYFunc freeY (rocks: Rock
         updateRockState movedRocks state
     ) rocks
 
-let rollWestEast (xList: int list) blockFilterFunc newXFunc freeX (rocks: Rock list) = 
+let rollWestEast (xList: int list) blockFilterFunc newXFunc freeX (unmovaBle: Rock list) (rocks: Rock list) = 
     xList
     |> List.fold (fun (state: Rock list) (x: int) -> 
         let movedRocks = 
-            state |> List.filter(fun r -> r.x = x && r.rockType = RockType.Rolling)
+            state 
+            |> List.filter(fun r -> r.x = x)
             |> List.map (fun r -> 
                 let newX = 
-                    state 
+                    (state @ unmovaBle) 
                     |> List.filter(fun r -> blockFilterFunc r x)
                     |> List.filter(fun rx -> rx.y = r.y) 
                     |> fun rxs -> 
@@ -85,7 +87,7 @@ let rollWestEast (xList: int list) blockFilterFunc newXFunc freeX (rocks: Rock l
         updateRockState movedRocks state
     ) rocks
 
-let roll (dir: RollDirection) (maxY: int) (maxX: int) (rocks: Rock list) =
+let roll (dir: RollDirection) (maxY: int) (maxX: int) (unmovaBle: Rock list) (rocks: Rock list) =
     match dir with 
     | RollDirection.North ->
         rollSouthNorth 
@@ -93,6 +95,7 @@ let roll (dir: RollDirection) (maxY: int) (maxX: int) (rocks: Rock list) =
             (fun (r: Rock) (y: int) ->  r.y < y) 
             (fun (rxs: Rock list) -> (rxs |> List.maxBy (fun r -> r.y)).y + 1)
             0
+            unmovaBle
             rocks
     | RollDirection.South ->
         rollSouthNorth
@@ -100,6 +103,7 @@ let roll (dir: RollDirection) (maxY: int) (maxX: int) (rocks: Rock list) =
             (fun (r: Rock) (y: int) ->  r.y > y) 
             (fun (rxs: Rock list) -> (rxs |> List.minBy (fun r -> r.y)).y - 1)
             maxY
+            unmovaBle
             rocks
     | RollDirection.West ->
         rollWestEast 
@@ -107,6 +111,7 @@ let roll (dir: RollDirection) (maxY: int) (maxX: int) (rocks: Rock list) =
             (fun (r: Rock) (x: int) ->  r.x < x) 
             (fun (rxs: Rock list) -> (rxs |> List.maxBy (fun r -> r.x)).x + 1)
             0
+            unmovaBle
             rocks
     | RollDirection.East ->
         rollWestEast 
@@ -114,6 +119,7 @@ let roll (dir: RollDirection) (maxY: int) (maxX: int) (rocks: Rock list) =
             (fun (r: Rock) (x: int) ->  r.x > x) 
             (fun (rxs: Rock list) -> (rxs |> List.minBy (fun r -> r.x)).x - 1)
             maxX
+            unmovaBle
             rocks
 
 let calculateTotalLoad (rocks: Rock list) =
@@ -126,6 +132,8 @@ let calculateTotalLoad (rocks: Rock list) =
 let rollCycleTimes (nTotal: int) (rocks: Rock list) = 
     let maxY = rocksMaxY rocks
     let maxX = rocksMaxX rocks
+    let rollingRocks = rocks |> List.filter (fun x -> x.rockType = RockType.Rolling)
+    let unmovableRocks = rocks |> List.filter (fun x -> x.rockType = RockType.Unmovable)
 
     let rec findLoadWindow (nCounter: int) (localMax: int) (loads: int list) = 
         if nCounter > localMax then -1
@@ -153,19 +161,20 @@ let rollCycleTimes (nTotal: int) (rocks: Rock list) =
         else 
             let newRocks = 
                 recRocks 
-                |> roll RollDirection.North maxY maxX 
-                |> roll RollDirection.West maxY maxX 
-                |> roll RollDirection.South maxY maxX 
-                |> roll RollDirection.East maxY maxX 
+                |> roll RollDirection.North maxY maxX unmovableRocks
+                |> roll RollDirection.West maxY maxX unmovableRocks
+                |> roll RollDirection.South maxY maxX unmovableRocks
+                |> roll RollDirection.East maxY maxX unmovableRocks
             let newTotalLoad = recRocks |> calculateTotalLoad
             rollCycle (nCounter + 1) maxY maxX newRocks (loads @ [newTotalLoad])
-    rollCycle 0 maxY maxX rocks []
+    rollCycle 0 maxY maxX rollingRocks []
 
 let rollNorthOnce (rocks: Rock list) = 
     let maxY = rocksMaxY rocks
     let maxX = rocksMaxX rocks
-    rocks |> roll RollDirection.North maxY maxX 
-
+    let rollingRocks = rocks |> List.filter (fun x -> x.rockType = RockType.Rolling)
+    let unmovableRocks = rocks |> List.filter (fun x -> x.rockType = RockType.Unmovable)
+    rocks |> roll RollDirection.North maxY maxX unmovableRocks
 
 let exampleRocks = parseInput "./input/day14_example.txt" 
 let rocks = parseInput "./input/day14.txt" 
