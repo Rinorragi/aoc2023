@@ -79,13 +79,50 @@ let rec beamMeUpScotty (dir: Direction, beamX:int, beamY:int) (grid: char list l
             beamMeUpScotty (moveBeam (East, beamX, beamY)) grid left
         | _ -> failwith "Unknown grid event"
 
-let beamify (grid: char list list) =
-    beamMeUpScotty (East, 0,0) grid Map.empty
+let mapLength (energyMap: Map<(int * int), Direction list>) =
+    energyMap
     |> Map.toList
     |> List.map (fun ((x,y), _) -> (x,y))
     |> List.distinct
+    |> List.length
+
+let beamify (grid: char list list) =
+    beamMeUpScotty (East, 0,0) grid Map.empty
+    |> mapLength
+
+let allTheBeams (grid: char list list) =
+    let yMax = grid.Length - 1
+    let xMax = grid.[0].Length - 1
+    let yMaps =
+        [0..yMax]
+        |> List.map(fun y -> 
+            let easts = 
+                beamMeUpScotty (East, 0, y) grid Map.empty
+                |> mapLength
+            let wests = 
+                beamMeUpScotty (West, xMax, y) grid Map.empty
+                |> mapLength
+            [easts;wests])
+        |> List.concat
+    let xMaps =
+        [0..xMax]
+        |> List.map(fun x -> 
+            let souths = 
+                beamMeUpScotty (South, x, 0) grid Map.empty
+                |> mapLength
+            let norths = 
+                beamMeUpScotty (North, x, yMax) grid Map.empty
+                |> mapLength
+            [souths;norths])
+        |> List.concat
+    // Return max
+    yMaps @ xMaps |> List.max
+    
 
 let exampleInput = parseInput "./input/day16_example.txt" 
-exampleInput |> beamify |> List.length |> printfn "Example answer 1: %d"
 let input = parseInput "./input/day16.txt" 
-input |> beamify |> List.length |> printfn "Answer 1: %d"
+exampleInput |> beamify |> printfn "Example answer 1: %d"
+input |> beamify |> printfn "Answer 1: %d"
+
+exampleInput |> allTheBeams |> printfn "Example answer 2: %d"
+input |> allTheBeams |> printfn "Answer 2: %d"
