@@ -74,22 +74,23 @@ let instructionsToCoordinates (instructions: Instruction list) =
             let newY = if yMin < 0 then c.y + abs(yMin) else c.y
             let newX = if xMin < 0 then c.x + abs(xMin) else c.x
             { x=newX; y=newY;})
-    let insructionsAmount = 
-        System.Math.Round(
-            // + 1 from the starting point
-            (((instructions |> List.sumBy (fun f -> f.amount |> float)) + 1.0) / 2.0),
-            System.MidpointRounding.AwayFromZero)
-    (coordinates, insructionsAmount)
+    coordinates
     
-let calculateArea (coordinates: Coordinate list, len: float) =
-    // Shoelace formula for area of polygon. Nigel Galloway: April 11th., 2018
-    let shoeLace(n::g) = abs(List.pairwise(n::g@[n])|>List.fold(fun n ((nα,gα),(nβ,gβ))->n+(nα*gβ)-(gα*nβ)) 0.0)/2.0
-    //printfn "%f" (shoeLace [(3.0,4.0); (5.0,11.0); (12.0,8.0); (9.0,5.0); (5.0,6.0)])
+let calculateArea (coordinates: Coordinate list) =
+    // Modified version of: https://rosettacode.org/wiki/Shoelace_formula_for_polygonal_area#F#
+    let shoeLace (head::tail) = 
+        abs(
+            List.pairwise(head::tail@[head])
+            |> List.fold(fun shoelaceArea ((startX,startY),(endX,endY))->
+                abs(startX - endX) + 
+                abs(startY - endY) +
+                shoelaceArea+(startX*endY)-(startY*endX)) 0.0)
+        /2.0
     let floatAnswer = 
         coordinates 
         |> List.map (fun f -> (f.x |> float, f.y |> float))
         |> shoeLace 
-        |> (+) len
+        |> (+) 1.0 // To be honest not sure where this off by 1 error comes from, maybe starting point?
     System.Math.Round(floatAnswer,System.MidpointRounding.AwayFromZero)
 
 parsePart1 "./input/day18_example.txt" |> instructionsToCoordinates |> calculateArea |> printfn "Example answer 1: %f" 
