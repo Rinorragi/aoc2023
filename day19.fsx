@@ -21,8 +21,6 @@ type Workflow = {
     rules: Rule list
 }
 
-
-
 let parseInput (filePath) =
     let sInput = 
         System.IO.File.ReadAllText filePath
