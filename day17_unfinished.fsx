@@ -32,6 +32,7 @@ let Dijkstra (coordinatePoints: Coordinate list) (graph: Map<(Coordinate * Coord
     then seen
     else
         let costEfficientNext = List.min nextSteps
+        printfn "%A" costEfficientNext.cost
         if costEfficientNext.cost=None 
         then seen 
         else
@@ -41,7 +42,7 @@ let Dijkstra (coordinatePoints: Coordinate list) (graph: Map<(Coordinate * Coord
                     if potentialNextStep.toN=costEfficientNext.toN 
                     then None 
                     else 
-                        match costEfficientNext.cost,potentialNextStep.cost,Map.tryFind (costEfficientNext.toN,potentialNextStep.toN) graph with
+                        match costEfficientNext.cost, potentialNextStep.cost, Map.tryFind (costEfficientNext.toN,potentialNextStep.toN) graph with
                             |Some g,None,Some wg->Some {toN=potentialNextStep.toN;cost=Some(g+wg);fromN=costEfficientNext.toN}
                             |Some g,Some g',Some wg when g+wg<g'->Some {toN=potentialNextStep.toN;cost=Some(g+wg);fromN=costEfficientNext.toN}
                             |_ ->Some potentialNextStep)
@@ -49,12 +50,12 @@ let Dijkstra (coordinatePoints: Coordinate list) (graph: Map<(Coordinate * Coord
             findPath recNextSteps appendedSeen
   let route = findPath (coordinatePoints |>List.map(fun n->{toN=n;cost=(Map.tryFind(start,n) graph);fromN=start})) []
   (fun endCoordinate ->
-    let rec buildLinearRoute (endCoord: Coordinate) (linearRoute: Coordinate list) =
+    let rec buildRoute (endCoord: Coordinate) (linearRoute: Coordinate list) =
         match List.tryFind(fun (_,g)->g=endCoord) route with
         |Some(startC, endC) when start=startC->Some(startC::endC::linearRoute)
-        |Some(startC, endC) ->buildLinearRoute startC (endC::linearRoute)
+        |Some(startC, endC) ->buildRoute startC (endC::linearRoute)
         |_ ->None
-    buildLinearRoute endCoordinate [])
+    buildRoute endCoordinate [])
 
 let mazeInput (pathString: string) =     
     System.IO.File.ReadAllLines pathString
@@ -110,4 +111,4 @@ let part1Solver (pathString: string) =
     else 
         -1 
     
-part1Solver "./input/day17_example.txt" |> printfn "Answer1: %A"
+part1Solver "./input/day17_example.txt" |> printfn "Example answer1: %A"
