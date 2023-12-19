@@ -21,6 +21,13 @@ type Workflow = {
     rules: Rule list
 }
 
+type WorkflowResult = {
+    workflowId: string
+    result: bool
+    minXmas: Xmas
+    maxXmas: Xmas
+}
+
 let parseInput (filePath) =
     let sInput = 
         System.IO.File.ReadAllText filePath
@@ -116,6 +123,53 @@ let elfSortingMadness (workflows: Map<string,Workflow>) (parts: Xmas list) =
         let result = solveSorting workflows firstWorkflow x
         (result, x))
 
+let tuneMinMax (compChar: char) (value: int64) (minXmas: Xmas) (maxXmas: Xmas) (greaterThan: bool)= 
+    match compChar, greaterThan with 
+    | 'x', true -> ({ x = value + 1L; m = minXmas.m; a = minXmas.a; s = minXmas.s}, maxXmas) 
+    | 'm', true -> ({ x = minXmas.x; m = value + 1L; a = minXmas.a; s = minXmas.s}, maxXmas) 
+    | 'a', true -> ({ x = minXmas.x; m = minXmas.m; a = value + 1L; s = minXmas.s}, maxXmas) 
+    | 's', true -> ({ x = minXmas.x; m = minXmas.m; a = minXmas.a; s = value + 1L}, maxXmas) 
+    | 'x', false -> (minXmas, { x = value - 1L; m = maxXmas.m; a = maxXmas.a; s = maxXmas.s}) 
+    | 'm', false -> (minXmas, { x = maxXmas.x; m = value - 1L; a = maxXmas.a; s = maxXmas.s}) 
+    | 'a', false -> (minXmas, { x = maxXmas.x; m = maxXmas.m; a = value - 1L; s = maxXmas.s}) 
+    | 's', false -> (minXmas, { x = maxXmas.x; m = maxXmas.m; a = maxXmas.a; s = value - 1L}) 
+    | _ -> failwith (sprintf "Wrong char %c" compChar)
+
+let calculateCombinations (minXmas: Xmas) (maxXmas: Xmas) = (maxXmas.x - minXmas.x + 1L) * (maxXmas.m - minXmas.m + 1L) * (maxXmas.a - minXmas.a + 1L) * (maxXmas.s - minXmas.s + 1L)
+let rec solveDistinctCombinations (workflows: Map<string,Workflow>) (currentWF: Workflow) (minXmas: Xmas) (maxXmas: Xmas) =
+    currentWF.rules 
+    |> List.fold (fun (wfResults: WorkflowResult list, minState: Xmas, maxState: Xmas) currentRule -> 
+        match currentRule with 
+        | WorkFlowFinished(result = c) -> 
+            let newResults = wfResults @ [{ workflowId = currentWF.id; result = (c = 'A') ; minXmas = minState; maxXmas = maxState }]
+            (newResults , minState, maxState)
+        | JumpToAnother(workflow = wf) -> 
+            let (subResults, _, _) = solveDistinctCombinations workflows workflows.[wf] minState maxState
+            (wfResults @ subResults, minState, maxState)
+        | GreaterThan(comp = c; compareTo = cint; result = r;) ->
+            let (calcMinState, calcMaxState) = tuneMinMax c cint minState maxState true
+            let (newMinState, newMaxState) = tuneMinMax c (cint + 1L) minState maxState false
+            match r with 
+            | "A"
+            | "R" -> 
+                let newResults = wfResults @ [{ workflowId = currentWF.id; result = (r = "A"); minXmas = calcMinState; maxXmas = calcMaxState }]
+                (newResults , newMinState, newMaxState)
+            | _ -> 
+                let (subResults, _, _) = (solveDistinctCombinations workflows workflows.[r] calcMinState calcMaxState)
+                (wfResults @ subResults, newMinState, newMaxState)
+        | LessThan (comp = c; compareTo = cint; result = r;) ->
+            let (calcMinState, calcMaxState) = tuneMinMax c cint minState maxState false
+            let (newMinState, newMaxState) = tuneMinMax c (cint - 1L) minState maxState true
+            match r with 
+            | "A"
+            | "R" -> 
+                let newResults = wfResults @ [{ workflowId = currentWF.id; result = (r = "A"); minXmas = calcMinState; maxXmas = calcMaxState }]
+                (newResults , newMinState, newMaxState)
+            | _ -> 
+                let (subResults, _, _) = (solveDistinctCombinations workflows workflows.[r] calcMinState calcMaxState)
+                (wfResults @ subResults, newMinState, newMaxState)
+        ) ([], minXmas, maxXmas)
+
 let solvePart1 (workflows: Map<string,Workflow>) (parts: Xmas list) =
     elfSortingMadness workflows parts
     |> List.filter fst
@@ -123,7 +177,19 @@ let solvePart1 (workflows: Map<string,Workflow>) (parts: Xmas list) =
         x.x + x.m + x.a + x.s)
     |> List.sum
 
+let solvePart2 (workflows: Map<string,Workflow>) =
+    let (res,_,_) = solveDistinctCombinations workflows workflows.["in"] { x=1; m=1; a=1; s=1} {x=4000;m=4000;a=4000;s=4000}
+    res |> List.map (fun s -> 
+        let combinations = calculateCombinations s.minXmas s.maxXmas
+        s.result, combinations)
+    |> List.filter fst
+    |> List.map snd
+    |> List.sum
+
 let (exampleWorkflows, exampleParts) = parseInput "./input/day19_example.txt"
 let (workflows, parts) = parseInput "./input/day19.txt"
 solvePart1 exampleWorkflows exampleParts |> printfn "Example answer 1: %d"
 solvePart1 workflows parts |> printfn "Answer 1: %d"
+
+solvePart2 exampleWorkflows |> printfn "Example answer 2: %A"
+solvePart2 workflows |> printfn "Example answer 2: %A"
