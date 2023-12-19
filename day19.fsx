@@ -4,15 +4,15 @@
 let nl = "\n"
 
 type Xmas = {
-    x: int
-    m: int
-    a: int 
-    s: int
+    x: int64
+    m: int64
+    a: int64 
+    s: int64
 }
 
 type Rule = 
-    | GreaterThan of comp: char * compareTo: int * result: string
-    | LessThan of comp: char * compareTo: int * result: string
+    | GreaterThan of comp: char * compareTo: int64 * result: string
+    | LessThan of comp: char * compareTo: int64 * result: string
     | JumpToAnother of workflow: string
     | WorkFlowFinished of result: char
 
@@ -47,8 +47,8 @@ let parseInput (filePath) =
                         let comparisonSplitted = sRuleSplitted.[0].Split([|'<';'>'|],System.StringSplitOptions.RemoveEmptyEntries)
                         let isGreaterThan = sRule.Contains('>')
                         if isGreaterThan 
-                        then GreaterThan (comp = comparisonSplitted.[0].[0], compareTo = (comparisonSplitted.[1] |> int), result = sRuleSplitted.[1])
-                        else LessThan (comp = comparisonSplitted.[0].[0], compareTo = (comparisonSplitted.[1] |> int), result = sRuleSplitted.[1])
+                        then GreaterThan (comp = comparisonSplitted.[0].[0], compareTo = (comparisonSplitted.[1] |> int64), result = sRuleSplitted.[1])
+                        else LessThan (comp = comparisonSplitted.[0].[0], compareTo = (comparisonSplitted.[1] |> int64), result = sRuleSplitted.[1])
                     | _ -> JumpToAnother (sRule)
                 )
             {
@@ -64,14 +64,14 @@ let parseInput (filePath) =
         |> List.map (fun s -> 
             let sXmas = s.Substring(1, s.Length - 2).Split(',')
             {
-                x = sXmas.[0].Substring(2) |> int
-                m = sXmas.[1].Substring(2) |> int
-                a = sXmas.[2].Substring(2) |> int
-                s = sXmas.[3].Substring(2) |> int
+                x = sXmas.[0].Substring(2) |> int64
+                m = sXmas.[1].Substring(2) |> int64
+                a = sXmas.[2].Substring(2) |> int64
+                s = sXmas.[3].Substring(2) |> int64
             })
     (workflows,parts)
 
-let compareComponents (compChar: char) (compXmas: Xmas) (compInt: int) compareFunc = 
+let compareComponents (compChar: char) (compXmas: Xmas) (compInt: int64) compareFunc = 
     match compChar with 
     | 'x'-> compareFunc compXmas.x compInt
     | 'm'-> compareFunc compXmas.m compInt
