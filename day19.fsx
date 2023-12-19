@@ -111,20 +111,21 @@ let rec solveSorting (workflows: Map<string,Workflow>) (currentWF: Workflow) (pa
                     
         ) (false,false)
     fst result 
-let elfSortingMadness (workflows: Map<string,Workflow>, parts: Xmas list) =
+let elfSortingMadness (workflows: Map<string,Workflow>) (parts: Xmas list) =
     parts
     |> List.map (fun x -> 
         let firstWorkflow = workflows.["in"]
         let result = solveSorting workflows firstWorkflow x
         (result, x))
 
-let solvePart1 (workflows: Map<string,Workflow>, parts: Xmas list) =
-    elfSortingMadness (workflows, parts)
+let solvePart1 (workflows: Map<string,Workflow>) (parts: Xmas list) =
+    elfSortingMadness workflows parts
     |> List.filter fst
     |> List.map (fun (_,x) -> 
         x.x + x.m + x.a + x.s)
     |> List.sum
 
-
-parseInput "./input/day19_example.txt" |> solvePart1 |> printfn "Example answer 1: %d"
-parseInput "./input/day19.txt" |> solvePart1 |> printfn "Answer 1: %d"
+let (exampleWorkflows, exampleParts) = parseInput "./input/day19_example.txt"
+let (workflows, parts) = parseInput "./input/day19.txt"
+solvePart1 exampleWorkflows exampleParts |> printfn "Example answer 1: %d"
+solvePart1 workflows parts |> printfn "Answer 1: %d"
